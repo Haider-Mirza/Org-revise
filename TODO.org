@@ -1,0 +1,12 @@
+#+title: TODO
+#+author: Haider Mirza
+
+* TODO
+** DONE Make a initialization function that makes all files exist.
+** DONE Make a function that uses org-capture-templates to add a task to the files.
+** Extend org-revise-create with variables
+*** Work out how to use defcustom
+** Easy Refiling
+** Easy Movement between files
+** Autoload
+** Methord to integrate with original org-capture-templates
