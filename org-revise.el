@@ -1,4 +1,4 @@
-;;; org-revise.el --- Revision tool for Emacs            -*- lexical-binding: t; -*-
+;;; org-revise.el --- Revision tool for Emacs
 
 ;; Copyright (C) 2023 Haider Mirza
 
@@ -26,7 +26,9 @@
 ;; Org-revise is a package that uses spaced repetition and the features of org-agenda
 ;; to help people memorise and revise information.
 
-;;; Test Area
+;;                      |----------------------------|
+;;                           Test Variables Area
+;;                      |----------------------------|
 
 (setq org-revise-files
       '("~/documents/revision/maths.org"
@@ -36,8 +38,14 @@
 	"~/documents/revision/biology.org"
 	"~/documents/revision/geography.org"))
 
+(setq org-agenda-files
+      '("/home/haider/documents/agenda/home.org"))
+
+(setq org-revise-task-date-incraments
+      '("0" "7" "14" "30"))
+
 ;;; Code:
-(require 'org)
+(require 'org-agenda)
 (require 'cl-lib)
 
 (defvar org-revise-files nil
@@ -48,28 +56,34 @@ Make sure that you include the '.org' extention the files are org files.")
   "Should you be asked for the initial rating."
   :type 'boolean)
 
+(defcustom org-revise-use-scheduled t
+  "Whether org-revise manages dates with scheduled or deadline"
+  :type 'boolean)
+
 (defcustom org-revise-auto-date-today nil
   "This variable controls if the date automatically gets filled out for today when creating a task."
   :type 'boolean)
 
-(defcustom org-revise-use-agenda t
-  "Whether to make all files listed in the variable 'org-revise-files' included in Org Agenda."
-  :type 'boolean)
+(defvar org-revise-task-date-incraments '("0" "7" "14" "30")
+  "In what incraments are dates added to a task.
 
-(defcustom org-revise-initial-rating "C"
-  "What should the initial rating be set as.
-This variable will be used only if 'org-revise-ask-initial-rating' is nil.
+The starting date by default is zero so the task has to first be done today.
 
-The variable MUST be set to either 'A' 'B' or 'C'.
-'C' is the default option"
-  :type '(choice (const :tag "A" A)
-		 (const :tag "B" B)
-		 (const :tag "C" C)))
+This function allows org-revise to utilise spaced repetition.
+This function should be set as a list of strings where each string contains the amount of days until next incrament.")
 
 (defun org-revise-prerequisites-check ()
   "Checks Prerequisites for many functions in the org revise package"
-  (if (= (length org-revise-files) 0)
-      (user-error "ERROR: Please set the variable 'org-revise-files'")))
+  (when (= (length org-revise-files) 0)
+    (user-error "ERROR: Please set the variable 'org-revise-files'"))
+  (when ((lambda (list) ""
+	   (let ((unique1 (cl-remove-duplicates list :test #'equal)))
+	     (if (eq list unique1)
+		 nil
+	       t)))
+	 
+	 (mapcar #'(lambda (name) (substring name 0 1)) (mapcar #'file-name-base org-revise-files)))
+    (user-error "ERROR: Make sure the filename starts with a different letter prefix")))
 
 ;; Remake this function
 (defun org-revise-init ()
@@ -98,17 +112,25 @@ Variable 'org-revise-files' must be set before running this function."
 		   (let ((x list))
 		     (pop (nthcdr org-revise-index-file-no-exist x))
 		     x)) org-revise-files-copy)))))))
-  ;;  (when org-revise-use-agenda
-  ;;   (mapcar #'(lambda (filedirectory) (push filedirectory org-agenda-files)) org-revise-files)))
+
+(defmacro convert-integer-to-org-revise-rating (integer)
+  (concat "|[#" integer "]"))
 
 (defmacro convert-to-org-capture (directory)
-  (let ((name (file-name-base directory)))
+  (let ((name (file-name-base directory))
+	(no-ratings (prin1-to-string (length org-revise-task-date-incraments))))
     `(,(substring name 0 1) ,name entry
-      (file+headline ,directory ,(concat "Org Revise - " name))
+      (file+headline ,directory ,(concat "Org Revise - " name ":" name ":\n"))
       ,(concat "* "
 	       (if org-revise-ask-initial-rating
-		   "%^{Select the initial rating|[#C]|[#B]|[#A]}"
-		 (concat "[#" org-revise-initial-rating "]"))
+		   (concat "%^{Select the initial rating"
+			   (mapconcat #'(lambda (element)
+					  (macroexpand `(convert-integer-to-org-revise-rating
+							 ,@(+ 1 (cl-position element org-revise-task-date-incraments :test 'equal)))))
+				      org-revise-task-date-incraments)
+			   "} :" name ":")
+		 (concat "[#" no-ratings "]"))
+	       
 	       " %^{Start typing a heading}\n"
 	       (if org-revise-auto-date-today
 		   "SCHEDULED: %t"
@@ -119,6 +141,7 @@ Variable 'org-revise-files' must be set before running this function."
 (defun org-revise-create ()
   "Creates a task in one of the files declared in the variable 'org-revise-files'."
   (interactive)
+  (org-revise-prerequisites-check)
   (let ((org-capture-templates
 	 (mapcar #'(lambda (string) (macroexpand `(convert-to-org-capture ,string))) org-revise-files)))
     (org-capture)))
@@ -131,3 +154,33 @@ Variable 'org-revise-files' must be set before running this function."
      (nth
       (cl-position
        (completing-read "Choose a file: " org-revise-files-names) org-revise-files-names :test 'equal) org-revise-files))))
+
+(defun org-revise-list-all-tasks ()
+  "List all the tasks created with 'org-revise-create'."
+  (interactive)
+  (let ((org-agenda-files org-revise-files)
+	(org-agenda-custom-commands 
+	 '(("l" "All Org Revise Files"
+	    ((tags (mapconcat #'file-name-base org-revise-files "|"))))
+	   )))
+    (org-agenda nil "l")))
+
+(defun org-revise-done-task ()
+  "This function reschedules the task due to the principles of spaced repetition. The incraments in which it reschedules are stored in the variable list 'org-revise-task-date-incraments'."
+  (interactive)
+  (when (not (eq major-mode 'org-mode))
+    (user-error "ERROR: Make sure you are in a OrgMode file when running this function"))
+  (let ((org-current-priority (string-to-number (org-entry-get nil "PRIORITY"))))
+    ;; https://emacs.stackexchange.com/questions/75956/convert-foo-to-foo
+    (org-schedule nil
+		  (concat "+"
+			  (number-to-string
+			   (- (string-to-number
+			       (nth (+ 1 (-
+					  (length org-revise-task-date-incraments)
+					  org-current-priority))
+				    org-revise-task-date-incraments)) 1)) "d"))
+    (save-excursion
+      (search-backward-regexp "#[0-9]")
+      (replace-match (concat "#" (number-to-string
+				  (- org-current-priority 1)))))))

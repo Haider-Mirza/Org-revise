@@ -1,16 +1,22 @@
 #+title: TODO
 #+author: Haider Mirza
 
+* BUGS
+** DONE Defining as dynamic an already lexical var: org-capture-templates
+For some reason, I have to turn of the lexical variable.
+
 * TODO
 ** DONE Make a initialization function that makes all files exist.
 I have to remake the function, it has a logic error in it.
 ** DONE Make a function that uses org-capture-templates to add a task to the files.
-** PRIORITY Make a custom tag for the files
+** DONE Make a custom tag for the files
 If I don't do that, conflicts will arise.
-** Extend org-revise-create with variables
-*** Work out how to use defcustom
-I have learnt how to use the majority of defcustom but I am still new to it. The package is quite configurable now.
-** Easy Refiling
-** Easy Movement between files
-** Autoload
+
+It now uses [#1] and things like that. Numbers instead of letters.
+** DONE Easy Movement between files
+This is done with 'org-revise-goto'
+** DONE Make a function that edits the date when a task is done
+** Add a warning for people who use Integers as org priorities.
 ** Methord to integrate with original org-capture-templates
+** Easy Refiling
+** Autoload
