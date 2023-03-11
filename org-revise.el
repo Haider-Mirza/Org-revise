@@ -76,6 +76,7 @@ This function should be set as a list of strings where each string contains the 
     (user-error "ERROR: Make sure the filenames in the variable 'org-revise-files' starts with a different letter prefix"))
   (mapcar #'(lambda (filepath) (add-to-list 'org-agenda-files filepath)) org-revise-files))
 
+;;;###autoload
 (defun org-revise-init ()
   "Initializes org-revise. This is to be ran only once on startup.
   Variable 'org-revise-files' must be set before running this function."
