@@ -1,4 +1,4 @@
-;;; org-revise.el --- Revision tool for Emacs -*- lexical-binding: t -*-
+;;; org-revise.el --- Revision tool for Emacs
 
 ;; Copyright (C) 2023 Haider Mirza
 
