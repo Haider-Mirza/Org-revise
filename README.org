@@ -2,4 +2,12 @@
 #+author: Haider Mirza
 
 * Org Revise
-*NOTE that this package is still in heavy development*
+** Introduction
+This package is a tool to help students and the alike with their revision.
+
+** Changelog
+*** 1.0.0
+First tagged version
+
+** License
+GPLv3+
